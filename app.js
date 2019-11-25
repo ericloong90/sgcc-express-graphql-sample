@@ -16,6 +16,12 @@ const rootValue = {
 const app = express();
 app.use(cors());
 
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Navigate to /graphql for GraphQL endpoint',
+  });
+});
+
 app.use(
   '/graphql',
   graphqlHTTP({
