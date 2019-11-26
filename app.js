@@ -1,36 +1,23 @@
 const express = require('express');
 const cors = require('cors');
 const graphqlHTTP = require('express-graphql');
-const { buildSchema } = require('graphql');
+const session = require('express-session');
 
-const schema = buildSchema(`
-  type Query {
-    hello: String!
-    ip: String!
-    rollOneDice(numSides: Int!): Int!
-    rollOneSixSidedDice: Int!
-    rollDice(numSides: Int, numDice: Int!): [Int]!
-  }
-`);
-
-const rootValue = {
-  hello: () => 'Hello World',
-  ip: (args, req) => req.ip,
-  rollOneDice: ({ numSides }) => Math.floor(Math.random() * numSides) + 1,
-  rollOneSixSidedDice() {
-    return this.rollOneDice({ numSides: 6 });
-  },
-  rollDice({ numSides = 6, numDice }) {
-    const rolls = [];
-    for (let i = 0; i < numDice; i += 1) {
-      rolls.push(this.rollOneDice({ numSides }));
-    }
-    return rolls;
-  },
-};
+const schema = require('./schema');
+const resolvers = require('./resolvers');
+const mutations = require('./mutations');
+const extensions = require('./extensions');
 
 const app = express();
 app.use(cors());
+app.use(
+  session({
+    secret: 'SG Code Campus',
+    cookie: { maxAge: 60000 },
+    resave: false,
+    saveUninitialized: false,
+  }),
+);
 
 app.get('/', (req, res) => {
   res.json({
@@ -38,15 +25,33 @@ app.get('/', (req, res) => {
   });
 });
 
+const startTime = Date.now();
+
 app.use(
   '/graphql',
-  graphqlHTTP({
+  graphqlHTTP((request, response, graphQLParams) => ({
     schema,
-    rootValue,
-    graphiql: true,
-  }),
+    rootValue: {
+      ...mutations,
+      ...resolvers,
+    },
+    graphiql: {
+      defaultQuery: `
+      query HelloWorld {
+        hello
+      }
+      `,
+    },
+    context: {
+      startTime,
+      request,
+      response,
+      graphQLParams,
+    },
+    extensions,
+  })),
 );
 
 app.listen(process.env.PORT || 4000, () => {
-  console.log(`App is now listening to port ${process.env.port || 4000} `);
+  console.log(`App is now listening to port ${process.env.port || 4000}`);
 });
