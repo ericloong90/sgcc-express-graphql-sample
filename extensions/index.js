@@ -6,10 +6,6 @@ module.exports = ({
   document,
   operationName,
   result,
-}) => {
-  console.log('variables: ', variables);
-
-  return {
-    runTime: runTime(startTime),
-  };
-};
+}) => ({
+  runTime: runTime(startTime),
+});
